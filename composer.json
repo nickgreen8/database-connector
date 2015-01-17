@@ -9,12 +9,19 @@
 		}
 	],
 	"minimum-stability": "dev",
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/nickgreen8/utils.git"
+		}
+	],
 	"require": {
-		"php": ">=5.4.0"
+		"php": ">=5.4.0",
+		"n8g/utils": ">=0.0.1"
 	},
 	"autoload": {
 		"psr-4": {
-			"N8G\\Database": "src/"
+			"N8G\\Database\\": "src/"
 		}
 	}
 }
