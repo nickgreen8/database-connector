@@ -1,0 +1,20 @@
+{
+	"name": "n8g/database-connector",
+	"description": "Database Connection Utilities",
+	"license": "proprietary",
+	"authors": [
+		{
+			"name": "Nick Green",
+			"email": "nick@nickgreenweb.co.uk"
+		}
+	],
+	"minimum-stability": "dev",
+	"require": {
+		"php": ">=5.4.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"N8G\\Database": "src/"
+		}
+	}
+}
