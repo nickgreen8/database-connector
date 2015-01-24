@@ -70,15 +70,73 @@ class Database
 	 * @param  mixed  $parameters Either an array of parameters or a string
 	 * @return object             A query reuslt object
 	 */
-	public static function perform(string $table, array $data, $action = 'insert', $parameters = null)
+	public static function perform($table, array $data, $action = 'insert', $parameters = null)
 	{
 		Log::notice('Building query');
 
-		try {
-			if (!isset(self::$db)) {
-				throw new NoDatabaseConnectionException('There was no database connection found.');
+		if (strtoupper($action) !== 'SELECT' && strtoupper($action) !== 'INSERT' && strtoupper($action) !== 'UPDATE' && strtoupper($action) !== 'DELETE') {
+			Log::ERROR(sprintf('An invalid action was specified. The action must be INSERT, UPDATE, SELECT or DELETE. %s specified.', strtoupper($action)));
+			return;
+		}
+
+		if (strtoupper($action) === 'SELECT') {
+			//Create query string
+			$query = 'SELECT ';
+
+			//Build the query
+			foreach ($data as $arg) {
+				$query .= $arg . ', ';
 			}
-		} catch (NoDatabaseConnectionException $e) {}
+			$query = substr($query, 0, -2);
+
+			$query .= ' FROM ';
+			$query .= $table;
+		} elseif (strtoupper($action) === 'INSERT') {
+			//Create query string
+			$query = 'INSERT INTO ' . $table . ' (';
+			$values = '';
+
+			//Build query
+			foreach ($data as $col => $val) {
+				$query .= $col . ', ';
+
+				if (is_int($val)) {
+					$values .= $val . ', ';
+				} elseif (is_bool($val)) {
+					$values .= $val === true ? 'TRUE, ' : 'FALSE, ';
+				} else {
+					$values .= '\'' . $val . '\', ';
+				}
+			}
+
+			$query = substr($query, 0, -2) . ') VALUES (' . substr($values, 0, -2) . ')';
+		} elseif (strtoupper($action) === 'UPDATE') {
+			//Create query string
+			$query = 'UPDATE ' . $table . ' SET ';
+
+			//Build query
+			foreach ($data as $col => $val) {
+				$query .= $col . ' = ';
+
+				if (is_int($val)) {
+					$query .= $val . ', ';
+				} elseif (is_bool($val)) {
+					$query .= $val === true ? 'TRUE, ' : 'FALSE, ';
+				} else {
+					$query .= '\'' . $val . '\', ';
+				}
+			}
+
+			$query = substr($query, 0, -2) . ' WHERE ' . $parameters;
+		} elseif (strtoupper($action) === 'DELETE') {
+			//Create query string
+			$query = 'DELETE FROM ' . $table . ' WHERE ' . $parameters;
+		}
+
+		Log::notice(sprintf('Executing query: %s', $query));
+
+		//Make the query
+		return self::query($query);
 	}
 
 	/**
