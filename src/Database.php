@@ -2,8 +2,7 @@
 namespace N8G\Database;
 
 use N8G\Utils\Log,
-	N8G\Database\DatabaseInterface,
-	N8G\Database\Databases\MySQL,
+	N8G\Database\Databases\MySql,
 	N8G\Database\Exceptions\QueryException,
 	N8G\Database\Exceptions\NoDatabaseConnectionException,
 	N8G\Database\Exceptions\UnableToCreateDatabaseConnectionException;
@@ -15,7 +14,7 @@ use N8G\Utils\Log,
  *
  * @author Nick Green <nick-green@live.co.uk>
  */
-class Database implements DatabaseInterface
+class Database
 {
 	/**
 	 * The database class to interact with.
@@ -44,7 +43,8 @@ class Database implements DatabaseInterface
 			switch ($dbType) {
 				case 'mysql' :
 					Log::notice('Attempting connection to MySQL database');
-					self::$db = new MySql($host, $username, $password, $dbName);
+					self::$db = MySql::getInstance();
+					return self::$db->connect($host, $username, $password, $dbName);
 					break;
 			}
 
@@ -52,21 +52,6 @@ class Database implements DatabaseInterface
 			return self::$db;
 		} catch (UnableToCreateDatabaseConnectionException $e) {
 			self::$db = null;
-		}
-	}
-
-	/**
-	 * This function checks for a database connection. If there is no connection then no interactions
-	 * can be made.
-	 *
-	 * @return bool
-	 */
-	private function checkForConnetion()
-	{
-		if (self::$db !== null) {
-			return true;
-		} else {
-			return false;
 		}
 	}
 
@@ -82,10 +67,10 @@ class Database implements DatabaseInterface
 	 * @param  mixed  $parameters Either an array of parameters or a string
 	 * @return object             A query reuslt object
 	 */
-	public function perform(string $table, array $data, $action = 'insert', $parameters = null)
+	public static function perform(string $table, array $data, $action = 'insert', $parameters = null)
 	{
 		try {
-			if (!self::$checkForConnetion()) {
+			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
 			}
 		} catch (NoDatabaseConnectionException $e) {}
@@ -98,23 +83,17 @@ class Database implements DatabaseInterface
 	 * @param  string $query The query to be passed to the DB
 	 * @return object        A query result object
 	 */
-	public function query($query)
+	public static function query($query)
 	{
-		var_dump(self::$db);
-		/*Log::info(sprintf('Attempting query: %s', $query));
+		Log::info(sprintf('Attempting query: %s', $query));
 		try {
-var_dump($this->$checkForConnetion());
-echo '<br />';
-			if (!$this->$checkForConnetion()) {
-echo '4<br />';
+			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
 			}
-echo '5<br />';
+
 			return self::$db->query($query);
-echo '6<br />';
 		} catch (NoDatabaseConnectionException $e) {}
 		  catch (QueryException $e) {}
-echo '7<br />';*/
 	}
 
 	/**
@@ -125,12 +104,14 @@ echo '7<br />';*/
 	 * @param  mixed  $queries Either an array of strings that make up the queries or a long string.
 	 * @return object          A query result object
 	 */
-	public function mulitQuery($queries)
+	public static function mulitQuery($queries)
 	{
 		try {
-			if (!self::$checkForConnetion()) {
+			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
 			}
+
+			return self::$db->mulitQuery($queries);
 		} catch (NoDatabaseConnectionException $e) {}
 	}
 
@@ -139,12 +120,14 @@ echo '7<br />';*/
 	 *
 	 * @return object          A query result object
 	 */
-	public function execProcedure()
+	public static function execProcedure()
 	{
 		try {
-			if (!self::$checkForConnetion()) {
+			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
 			}
+
+			return self::$db->execProcedure();
 		} catch (NoDatabaseConnectionException $e) {}
 	}
 
@@ -155,12 +138,14 @@ echo '7<br />';*/
 	 * @param  object $result The query result object
 	 * @return int            The number of rows returned from the query
 	 */
-	public function getNumRows($result)
+	public static function getNumRows($result = null)
 	{
 		try {
-			if (!self::$checkForConnetion()) {
+			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
 			}
+
+			return (int) self::$db->getNumRows($result);
 		} catch (NoDatabaseConnectionException $e) {}
 	}
 
@@ -171,12 +156,14 @@ echo '7<br />';*/
 	 * @param  object $result The query result object
 	 * @return array          The query result in the form of an array
 	 */
-	public function getArray($result)
+	public static function getArray($result = null)
 	{
 		try {
-			if (!self::$checkForConnetion()) {
+			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
 			}
+
+			return self::$db->getArray($result);
 		} catch (NoDatabaseConnectionException $e) {}
 	}
 
@@ -186,12 +173,14 @@ echo '7<br />';*/
 	 *
 	 * @return int The ID of the record added to the DB
 	 */
-	public function getInsertID()
+	public static function getInsertID()
 	{
 		try {
-			if (!self::$checkForConnetion()) {
+			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
 			}
+
+			return self::$db->getInsertID();
 		} catch (NoDatabaseConnectionException $e) {}
 	}
 
@@ -202,12 +191,14 @@ echo '7<br />';*/
 	 *
 	 * @return void
 	 */
-	public function close()
+	public static function close()
 	{
 		try {
-			if (!self::$checkForConnetion()) {
+			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
 			}
+
+			return self::$db->close();
 		} catch (NoDatabaseConnectionException $e) {}
 	}
 
@@ -217,12 +208,14 @@ echo '7<br />';*/
 	 *
 	 * @return object DB connection object
 	 */
-	public function getConnection()
+	public static function getConnection()
 	{
 		try {
-			if (!self::$checkForConnetion()) {
+			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
 			}
+
+			return self::$db->getConnection();
 		} catch (NoDatabaseConnectionException $e) {}
 	}
 }
