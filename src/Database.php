@@ -91,6 +91,11 @@ class Database
 
 			$query .= ' FROM ';
 			$query .= $table;
+
+			//Check for params
+			if ($parameters !== null) {
+				$query .= ' WHERE ' . $parameters;
+			}
 		} elseif (strtoupper($action) === 'INSERT') {
 			//Create query string
 			$query = 'INSERT INTO ' . $table . ' (';
