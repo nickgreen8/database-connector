@@ -4,6 +4,20 @@ namespace N8G\Database;
 interface DatabaseInterface
 {
 	/**
+	 * This function is used to make the connection to the database. Four arguments are passed to
+	 * the function. The first is the database host, the next is the username and then the password
+	 * with the name of the database to connect with passed last. The function then returns an
+	 * instance of the connection.
+	 *
+	 * @param  string $host     The DB host
+	 * @param  string $username The DB username
+	 * @param  string $password The DB password
+	 * @param  string $name     The DB to connect with
+	 * @return object
+	 */
+	public function connect($host, $username, $password, $name);
+
+	/**
 	 * This function is used to make a query. All the query needs is a query in the
 	 * form of a string and a result object is returned.
 	 *
@@ -20,7 +34,7 @@ interface DatabaseInterface
 	 * @param  mixed  $queries Either an array of strings that make up the queries or a long string.
 	 * @return object          A query result object
 	 */
-	public function mulitQuery($queries);
+	public function multiQuery($queries);
 
 	/**
 	 * This function is used to execute a database procedure.

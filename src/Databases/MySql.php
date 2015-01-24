@@ -17,20 +17,19 @@ use N8G\Utils\Log,
 class MySql implements DatabaseInterface
 {
 	/**
-	 * Instance of this class.
+	 * An instance of this class
 	 * @var object|null
 	 */
-	private static $instanceOf = null;
+	private static $instance = null;
 
 	/**
-	 * Stored connection to the database.
+	 * An instance of the connection to the database
 	 * @var object
 	 */
 	private $connection;
 
 	/**
-	 * Query result object
-	 *
+	 * In instance of the last query object
 	 * @var object
 	 */
 	private $query;
@@ -41,33 +40,34 @@ class MySql implements DatabaseInterface
 	private function __construct() {}
 
 	/**
-	 * This function either gets or creates and instance of this singleton object. Nothing is passed
-	 * and the new object is returned.
+	 * This function creates or gets an instance of the MySQL class. Nothing is passed and an
+	 * instance of this object is returned.
 	 *
 	 * @return object
 	 */
 	public static function getInstance()
-	{
-		if (!self::$instanceOf) { 
-			self::$instanceOf = new MySql(); 
+	{ 
+		if (!self::$instance) { 
+			self::$instance = new MySql(); 
 		}
-		return self::$instanceOf; 
+		return self::$instance; 
 	}
 
 	/**
-	 * This function is used to create a connection to the database. Passed to it are the credentials
-	 * to make the connection. These are the server name, username and password followed by the database
-	 * name. The connection is then returned or an exception thrown.
+	 * This function is used to make the connection to the database. Four arguments are passed to
+	 * the function. The first is the database host, the next is the username and then the password
+	 * with the name of the database to connect with passed last. The function then returns an
+	 * instance of the connection.
 	 *
-	 * @param  string $server   The server to connect to
-	 * @param  string $username The username to connect to the database
-	 * @param  string $password The password to use to enter the database
-	 * @param  string $database The name of the database to interact with
-	 * @return object           The connection to the database
+	 * @param  string $host     The DB host
+	 * @param  string $username The DB username
+	 * @param  string $password The DB password
+	 * @param  string $name     The DB to connect with
+	 * @return object
 	 */
-	function connect($server, $username, $password, $database)
+	function connect($host, $username, $password, $name)
 	{
-		$this->connection = mysqli_connect($server, $username, $password, $database);
+		$this->connection = mysqli_connect($host, $username, $password, $name);
 		return $this->connection;
 	}
 
@@ -92,7 +92,7 @@ class MySql implements DatabaseInterface
 	 * @param  mixed  $queries Either an array of strings that make up the queries or a long string.
 	 * @return object          A query result object
 	 */
-	function mulitQuery($query)
+	function multiQuery($query)
 	{
 		return $this->connection->multi_query($query);
 	}

@@ -2,6 +2,7 @@
 namespace N8G\Database;
 
 use N8G\Utils\Log,
+	N8G\Database\DatabaseInterface,
 	N8G\Database\Databases\MySql,
 	N8G\Database\Exceptions\QueryException,
 	N8G\Database\Exceptions\NoDatabaseConnectionException,
@@ -36,7 +37,10 @@ class Database
 	 * @param  string $host     The database host (Default: localhost)
 	 * @return void
 	 */
-	public static function init($username, $password, $dbName, $dbType = 'mysql', $host = 'localhost') {
+	public static function init($username, $password, $dbName, $dbType = 'mysql', $host = 'localhost')
+	{
+		Log::info('Initilising database connection');
+
 		//Make connection to the database
 		try {
 			//Get the relevant database class
@@ -44,12 +48,11 @@ class Database
 				case 'mysql' :
 					Log::notice('Attempting connection to MySQL database');
 					self::$db = MySql::getInstance();
-					return self::$db->connect($host, $username, $password, $dbName);
+					self::$db->connect($host, $username, $password, $dbName);
 					break;
 			}
 
 			Log::info('Database connection established');
-			return self::$db;
 		} catch (UnableToCreateDatabaseConnectionException $e) {
 			self::$db = null;
 		}
@@ -69,6 +72,8 @@ class Database
 	 */
 	public static function perform(string $table, array $data, $action = 'insert', $parameters = null)
 	{
+		Log::notice('Building query');
+
 		try {
 			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
@@ -85,7 +90,8 @@ class Database
 	 */
 	public static function query($query)
 	{
-		Log::info(sprintf('Attempting query: %s', $query));
+		Log::notice(sprintf('Executing query: %s', $query));
+
 		try {
 			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
@@ -93,7 +99,6 @@ class Database
 
 			return self::$db->query($query);
 		} catch (NoDatabaseConnectionException $e) {}
-		  catch (QueryException $e) {}
 	}
 
 	/**
@@ -104,8 +109,10 @@ class Database
 	 * @param  mixed  $queries Either an array of strings that make up the queries or a long string.
 	 * @return object          A query result object
 	 */
-	public static function mulitQuery($queries)
+	public static function multiQuery($queries)
 	{
+		Log::notice('Executing multiple queries');
+
 		try {
 			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
@@ -122,6 +129,8 @@ class Database
 	 */
 	public static function execProcedure()
 	{
+		Log::notice('Executing procedure');
+
 		try {
 			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
@@ -135,11 +144,13 @@ class Database
 	 * This function gets the number of rows returned by the query. The result object is
 	 * passed and the number of rows is returned as an integer.
 	 *
-	 * @param  object $result The query result object
+	 * @param  object $result The query result object (Default: null)
 	 * @return int            The number of rows returned from the query
 	 */
 	public static function getNumRows($result = null)
 	{
+		Log::notice('Getting the number of rows retrieved');
+
 		try {
 			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
@@ -153,11 +164,13 @@ class Database
 	 * This function is used to get the query results as an array. The result object is
 	 * passed and the number of rows is returned as an integer.
 	 *
-	 * @param  object $result The query result object
+	 * @param  object $result The query result object (Default: null)
 	 * @return array          The query result in the form of an array
 	 */
 	public static function getArray($result = null)
 	{
+		Log::notice('Getting the result of the query as an array');
+
 		try {
 			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
@@ -175,6 +188,8 @@ class Database
 	 */
 	public static function getInsertID()
 	{
+		Log::notice('Getting the ID of the last item added to the database');
+
 		try {
 			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
@@ -193,6 +208,8 @@ class Database
 	 */
 	public static function close()
 	{
+		Log::notice('Closing the database connection');
+
 		try {
 			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
@@ -210,6 +227,8 @@ class Database
 	 */
 	public static function getConnection()
 	{
+		Log::notice('Getting the database connection');
+
 		try {
 			if (!isset(self::$db)) {
 				throw new NoDatabaseConnectionException('There was no database connection found.');
