@@ -52,7 +52,7 @@ class Database
 					break;
 			}
 
-			Log::info('Database connection established');
+			Log::success('Database connection established');
 		} catch (UnableToCreateDatabaseConnectionException $e) {
 			self::$db = null;
 		}
@@ -138,7 +138,7 @@ class Database
 			$query = 'DELETE FROM ' . $table . ' WHERE ' . $parameters;
 		}
 
-		Log::notice(sprintf('Executing query: %s', $query));
+		Log::success(sprintf('Query built: %s', $query));
 
 		//Make the query
 		return self::query($query);
