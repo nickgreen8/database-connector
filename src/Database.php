@@ -24,6 +24,12 @@ class Database
 	private static $db;
 
 	/**
+	 * The prefix to database tables
+	 * @var string
+	 */
+	private static $prefix;
+
+	/**
 	 * This is the function that will create the connection to the relevant database. If the function
 	 * is successful in connecting to the DB, the new object is stored. If not, the 'db' variable is
 	 * set to NULL. Nothing is returned. The parameters that are passed to the function are the
@@ -299,5 +305,30 @@ class Database
 
 			return self::$db->getConnection();
 		} catch (NoDatabaseConnectionException $e) {}
+	}
+
+	/**
+	 * This function is used to set the database table prefixes.
+	 *
+	 * @param  string $prefix The DB table prefix
+	 * @return void
+	 */
+	public static function setPrefix($prefix)
+	{
+		if (self::$prefix !== $prefix) {
+			Log::notice(sprintf('Setting DB table prefix to: %s', $prefix));
+
+			self::$prefix = $prefix;
+		}
+	}
+
+	/**
+	 * Gets the prefixed value on the DB tables
+	 *
+	 * @return string The prefix to the DB tables
+	 */
+	public static function getPrefix()
+	{
+		return self::$prefix;
 	}
 }
