@@ -4,9 +4,8 @@ namespace N8G\Database;
 use N8G\Utils\Log,
 	N8G\Database\DatabaseInterface,
 	N8G\Database\Databases\MySql,
-	N8G\Database\Exceptions\QueryException,
-	N8G\Database\Exceptions\NoDatabaseConnectionException,
-	N8G\Database\Exceptions\UnableToCreateDatabaseConnectionException;
+	N8G\Database\Databases\Mongo,
+	N8G\Database\Exceptions\DatabaseException;
 
 /**
  * This class is used to connect to the relevant database and interact with it. Before anything can
@@ -24,6 +23,12 @@ class Database
 	private static $db;
 
 	/**
+	 * The prefix to database tables
+	 * @var string
+	 */
+	private static $prefix;
+
+	/**
 	 * This is the function that will create the connection to the relevant database. If the function
 	 * is successful in connecting to the DB, the new object is stored. If not, the 'db' variable is
 	 * set to NULL. Nothing is returned. The parameters that are passed to the function are the
@@ -39,7 +44,7 @@ class Database
 	 */
 	public static function init($username, $password, $dbName, $dbType = 'mysql', $host = 'localhost')
 	{
-		Log::info('Initilising database connection');
+		Log::notice('Initilising database connection');
 
 		//Make connection to the database
 		try {
@@ -50,10 +55,16 @@ class Database
 					self::$db = MySql::getInstance();
 					self::$db->connect($host, $username, $password, $dbName);
 					break;
+
+				case 'mongo':
+					Log::notice('Attempting connection to MongoDB');
+					self::$db = Mongo::getInstance();
+					self::$db->connect($host, 27017, $dbName);
+					break;
 			}
 
 			Log::success('Database connection established');
-		} catch (UnableToCreateDatabaseConnectionException $e) {
+		} catch (\Exception $e) {
 			self::$db = null;
 		}
 	}
@@ -157,11 +168,11 @@ class Database
 
 		try {
 			if (!isset(self::$db)) {
-				throw new NoDatabaseConnectionException('There was no database connection found.');
+				throw new DatabaseException('There was no database connection found.');
 			}
 
 			return self::$db->query($query);
-		} catch (NoDatabaseConnectionException $e) {}
+		} catch (DatabaseException $e) {}
 	}
 
 	/**
@@ -178,11 +189,11 @@ class Database
 
 		try {
 			if (!isset(self::$db)) {
-				throw new NoDatabaseConnectionException('There was no database connection found.');
+				throw new DatabaseException('There was no database connection found.');
 			}
 
 			return self::$db->mulitQuery($queries);
-		} catch (NoDatabaseConnectionException $e) {}
+		} catch (DatabaseException $e) {}
 	}
 
 	/**
@@ -196,11 +207,11 @@ class Database
 
 		try {
 			if (!isset(self::$db)) {
-				throw new NoDatabaseConnectionException('There was no database connection found.');
+				throw new DatabaseException('There was no database connection found.');
 			}
 
 			return self::$db->execProcedure();
-		} catch (NoDatabaseConnectionException $e) {}
+		} catch (DatabaseException $e) {}
 	}
 
 	/**
@@ -216,11 +227,11 @@ class Database
 
 		try {
 			if (!isset(self::$db)) {
-				throw new NoDatabaseConnectionException('There was no database connection found.');
+				throw new DatabaseException('There was no database connection found.');
 			}
 
 			return (int) self::$db->getNumRows($result);
-		} catch (NoDatabaseConnectionException $e) {}
+		} catch (DatabaseException $e) {}
 	}
 
 	/**
@@ -236,11 +247,11 @@ class Database
 
 		try {
 			if (!isset(self::$db)) {
-				throw new NoDatabaseConnectionException('There was no database connection found.');
+				throw new DatabaseException('There was no database connection found.');
 			}
 
 			return self::$db->getArray($result);
-		} catch (NoDatabaseConnectionException $e) {}
+		} catch (DatabaseException $e) {}
 	}
 
 	/**
@@ -255,11 +266,11 @@ class Database
 
 		try {
 			if (!isset(self::$db)) {
-				throw new NoDatabaseConnectionException('There was no database connection found.');
+				throw new DatabaseException('There was no database connection found.');
 			}
 
 			return self::$db->getInsertID();
-		} catch (NoDatabaseConnectionException $e) {}
+		} catch (DatabaseException $e) {}
 	}
 
 	/**
@@ -275,11 +286,11 @@ class Database
 
 		try {
 			if (!isset(self::$db)) {
-				throw new NoDatabaseConnectionException('There was no database connection found.');
+				throw new DatabaseException('There was no database connection found.');
 			}
 
 			return self::$db->close();
-		} catch (NoDatabaseConnectionException $e) {}
+		} catch (DatabaseException $e) {}
 	}
 
 	/**
@@ -294,10 +305,40 @@ class Database
 
 		try {
 			if (!isset(self::$db)) {
-				throw new NoDatabaseConnectionException('There was no database connection found.');
+				throw new DatabaseException('There was no database connection found.');
 			}
 
 			return self::$db->getConnection();
-		} catch (NoDatabaseConnectionException $e) {}
+		} catch (DatabaseException $e) {}
+	}
+
+	/**
+	 * This function is used to set the database table prefixes.
+	 *
+	 * @param  string $prefix The DB table prefix
+	 * @return void
+	 */
+	public static function setPrefix($prefix)
+	{
+		if (self::$prefix !== $prefix) {
+			Log::notice(sprintf('Setting DB table prefix to: %s', $prefix));
+
+			self::$prefix = $prefix;
+		}
+	}
+
+	/**
+	 * Gets the prefixed value on the DB tables
+	 *
+	 * @return string The prefix to the DB tables
+	 */
+	public static function getPrefix()
+	{
+		return self::$prefix;
 	}
 }
+date_default_timezone_set('Europe/London');
+include_once '../vendor/autoload.php';
+Log::init('../logs/');
+Database::init(null, null, 'gamestracker', 'mongo');
+var_dump(Database::query('test'));

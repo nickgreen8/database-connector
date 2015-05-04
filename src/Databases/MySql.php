@@ -3,8 +3,6 @@ namespace N8G\Database\Databases;
 
 use N8G\Utils\Log,
 	N8G\Database\DatabaseInterface,
-	N8G\Database\Exceptions\UnableToCreateDatabaseConnectionException,
-	N8G\Database\Exceptions\QueryException,
 	\mysqli;
 
 /**
