@@ -192,13 +192,18 @@ class Database
 	}
 
 	/**
-	 * This function is used to execute a database procedure.
+	 * This function is used to execute a database procedure. The name of the procedure
+	 * to be executed is passed followed by an array which is the arguments to be passed
+	 * to the procedure.
 	 *
-	 * @return object          A query result object
+	 * @param  string $name The name of the procedure to be executed.
+	 * @param  array  $args The arguments to be passed to the procedure.
+	 * @return object       A query result object.
 	 */
-	public static function execProcedure()
+	public static function execProcedure($name, $args = array())
 	{
 		Log::notice('Executing procedure');
+		Log::debug('The name of the procedure being executed is: %s(%s)', $name, implode(', ', $args));
 
 		try {
 			if (!isset(self::$db)) {
