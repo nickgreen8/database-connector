@@ -2,7 +2,6 @@
 namespace N8G\Database;
 
 use N8G\Utils\Log,
-	N8G\Database\DatabaseInterface,
 	N8G\Database\Databases\MySql,
 	N8G\Database\Databases\Mongo,
 	N8G\Database\Exceptions\DatabaseException;
@@ -23,28 +22,25 @@ class Database
 	private static $db;
 
 	/**
-	 * The prefix to database tables
-	 * @var string
-	 */
-	private static $prefix;
-
-	/**
 	 * This is the function that will create the connection to the relevant database. If the function
 	 * is successful in connecting to the DB, the new object is stored. If not, the 'db' variable is
 	 * set to NULL. Nothing is returned. The parameters that are passed to the function are the
-	 * username and password to the database. The DB name is then passed followed by the DB type.
-	 * The final argumant is the host of the DB.
+	 * parmameters needed to access the database and they type of database.
 	 *
-	 * @param  string $username The username to log into the database
-	 * @param  string $password The password to log into the database
-	 * @param  string $dbName   The name of the database to connect to
-	 * @param  string $dbType   The type of database to be connected to (Default: mysql)
-	 * @param  string $host     The database host (Default: localhost)
+	 * @param  array|object $conf The data needed to create the database connection.
+	 * @param  string $dbType     The type of database to be connected to (Default: mysql)
 	 * @return void
 	 */
-	public static function init($username, $password, $dbName, $dbType = 'mysql', $host = 'localhost')
+	public static function init($conf, $dbType = 'mysql')
 	{
 		Log::notice('Initilising database connection');
+
+		//Convert conf if required
+		if (is_object($conf)) {
+			$conf = (array) $conf;
+		}
+		//Check for host
+		$conf['host'] = !isset($conf['host']) ? 'localhost' : $conf['host'];
 
 		//Make connection to the database
 		try {
@@ -53,13 +49,13 @@ class Database
 				case 'mysql' :
 					Log::notice('Attempting connection to MySQL database');
 					self::$db = MySql::getInstance();
-					self::$db->connect($host, $username, $password, $dbName);
+					self::$db->connect($conf['host'], $conf['username'], $conf['password'], $conf['name']);
 					break;
 
 				case 'mongo':
 					Log::notice('Attempting connection to MongoDB');
 					self::$db = Mongo::getInstance();
-					self::$db->connect($host, 27017, $dbName);
+					self::$db->connect($conf['host'], isset($conf['port']) ? $conf['port'] : 27017, $conf['name']);
 					break;
 			}
 
@@ -70,275 +66,29 @@ class Database
 	}
 
 	/**
-	 * This function is used to build up a query and then to execute it. It is more of
-	 * a helper function that something that will be used in practice. The table to
-	 * query, the data, an action and any parameters are passed. The query is then built
-	 * and executed. The result object is then returned.
+	 * This function is used to call the function that is called on the relevant database class. The
+	 * method that is called is the first paramter that is passed. The arguments that are passed are
+	 * then passed. The relevant function is then checked and called with the parameters passed on.
+	 * The result is then returned. If the function does not exist or a connection has not been made,
+	 * then an exception is throw.
 	 *
-	 * @param  string $table      The table to be interacted with as a string
-	 * @param  array  $data       An array of data
-	 * @param  string $action     'select', 'insert' or 'update'
-	 * @param  mixed  $parameters Either an array of parameters or a string
-	 * @return object             A query reuslt object
+	 * @param  string $method The method to be called.
+	 * @param  array  $args   An array of the arguments passed to the function.
+	 * @return mixed          The result of the function call.
 	 */
-	public static function perform($table, array $data, $action = 'insert', $parameters = null)
+	public static function __callStatic($method, $args)
 	{
-		Log::notice('Building query');
-
-		if (strtoupper($action) !== 'SELECT' && strtoupper($action) !== 'INSERT' && strtoupper($action) !== 'UPDATE' && strtoupper($action) !== 'DELETE') {
-			Log::ERROR(sprintf('An invalid action was specified. The action must be INSERT, UPDATE, SELECT or DELETE. %s specified.', strtoupper($action)));
-			return;
+		//Check for connection
+		if (!isset(self::$db)) {
+			throw new DatabaseException('There was no database connection found.');
 		}
 
-		if (strtoupper($action) === 'SELECT') {
-			//Create query string
-			$query = 'SELECT ';
-
-			//Build the query
-			foreach ($data as $arg) {
-				$query .= $arg . ', ';
-			}
-			$query = substr($query, 0, -2);
-
-			$query .= ' FROM ';
-			$query .= $table;
-
-			//Check for params
-			if ($parameters !== null) {
-				$query .= ' WHERE ' . $parameters;
-			}
-		} elseif (strtoupper($action) === 'INSERT') {
-			//Create query string
-			$query = 'INSERT INTO ' . $table . ' (';
-			$values = '';
-
-			//Build query
-			foreach ($data as $col => $val) {
-				$query .= $col . ', ';
-
-				if (is_int($val)) {
-					$values .= $val . ', ';
-				} elseif (is_bool($val)) {
-					$values .= $val === true ? 'TRUE, ' : 'FALSE, ';
-				} else {
-					$values .= '\'' . $val . '\', ';
-				}
-			}
-
-			$query = substr($query, 0, -2) . ') VALUES (' . substr($values, 0, -2) . ')';
-		} elseif (strtoupper($action) === 'UPDATE') {
-			//Create query string
-			$query = 'UPDATE ' . $table . ' SET ';
-
-			//Build query
-			foreach ($data as $col => $val) {
-				$query .= $col . ' = ';
-
-				if (is_int($val)) {
-					$query .= $val . ', ';
-				} elseif (is_bool($val)) {
-					$query .= $val === true ? 'TRUE, ' : 'FALSE, ';
-				} else {
-					$query .= '\'' . $val . '\', ';
-				}
-			}
-
-			$query = substr($query, 0, -2) . ' WHERE ' . $parameters;
-		} elseif (strtoupper($action) === 'DELETE') {
-			//Create query string
-			$query = 'DELETE FROM ' . $table . ' WHERE ' . $parameters;
+		//Check that the function exists
+		if (method_exists(self::$db, $method)) {
+			//Call the function
+			return call_user_func_array(array(self::$db, $method), $args);
 		}
 
-		Log::success(sprintf('Query built: %s', $query));
-
-		//Make the query
-		return self::query($query);
-	}
-
-	/**
-	 * This function is used to make a query. All the query needs is a query in the
-	 * form of a string and a result object is returned.
-	 *
-	 * @param  string $query The query to be passed to the DB
-	 * @return object        A query result object
-	 */
-	public static function query($query)
-	{
-		Log::notice(sprintf('Executing query: %s', $query));
-
-		try {
-			if (!isset(self::$db)) {
-				throw new DatabaseException('There was no database connection found.');
-			}
-
-			return self::$db->query($query);
-		} catch (DatabaseException $e) {}
-	}
-
-	/**
-	 * This function is used to make multipul queries to the database at once. The
-	 * queries can be passed in as an array of strings or long string. A result object
-	 * is returned.
-	 *
-	 * @param  mixed  $queries Either an array of strings that make up the queries or a long string.
-	 * @return object          A query result object
-	 */
-	public static function multiQuery($queries)
-	{
-		Log::notice('Executing multiple queries');
-
-		try {
-			if (!isset(self::$db)) {
-				throw new DatabaseException('There was no database connection found.');
-			}
-
-			return self::$db->mulitQuery($queries);
-		} catch (DatabaseException $e) {}
-	}
-
-	/**
-	 * This function is used to execute a database procedure.
-	 *
-	 * @return object          A query result object
-	 */
-	public static function execProcedure()
-	{
-		Log::notice('Executing procedure');
-
-		try {
-			if (!isset(self::$db)) {
-				throw new DatabaseException('There was no database connection found.');
-			}
-
-			return self::$db->execProcedure();
-		} catch (DatabaseException $e) {}
-	}
-
-	/**
-	 * This function gets the number of rows returned by the query. The result object is
-	 * passed and the number of rows is returned as an integer.
-	 *
-	 * @param  object $result The query result object (Default: null)
-	 * @return int            The number of rows returned from the query
-	 */
-	public static function getNumRows($result = null)
-	{
-		Log::notice('Getting the number of rows retrieved');
-
-		try {
-			if (!isset(self::$db)) {
-				throw new DatabaseException('There was no database connection found.');
-			}
-
-			return (int) self::$db->getNumRows($result);
-		} catch (DatabaseException $e) {}
-	}
-
-	/**
-	 * This function is used to get the query results as an array. The result object is
-	 * passed and the number of rows is returned as an integer.
-	 *
-	 * @param  object $result The query result object (Default: null)
-	 * @return array          The query result in the form of an array
-	 */
-	public static function getArray($result = null)
-	{
-		Log::notice('Getting the result of the query as an array');
-
-		try {
-			if (!isset(self::$db)) {
-				throw new DatabaseException('There was no database connection found.');
-			}
-
-			return self::$db->getArray($result);
-		} catch (DatabaseException $e) {}
-	}
-
-	/**
-	 * This function is used to get the ID of the inserted or updated record in the
-	 * database. The ID is returned as an integer.
-	 *
-	 * @return int The ID of the record added to the DB
-	 */
-	public static function getInsertID()
-	{
-		Log::notice('Getting the ID of the last item added to the database');
-
-		try {
-			if (!isset(self::$db)) {
-				throw new DatabaseException('There was no database connection found.');
-			}
-
-			return self::$db->getInsertID();
-		} catch (DatabaseException $e) {}
-	}
-
-	/**
-	 * This function closes the database connection. This ensures that the database is
-	 * not clogged up with connections. This will be called in the destructor the
-	 * majority of the time.
-	 *
-	 * @return void
-	 */
-	public static function close()
-	{
-		Log::notice('Closing the database connection');
-
-		try {
-			if (!isset(self::$db)) {
-				throw new DatabaseException('There was no database connection found.');
-			}
-
-			return self::$db->close();
-		} catch (DatabaseException $e) {}
-	}
-
-	/**
-	 * This function gets the connection to the database. This is so that it can be
-	 * utilised in multipul places.
-	 *
-	 * @return object DB connection object
-	 */
-	public static function getConnection()
-	{
-		Log::notice('Getting the database connection');
-
-		try {
-			if (!isset(self::$db)) {
-				throw new DatabaseException('There was no database connection found.');
-			}
-
-			return self::$db->getConnection();
-		} catch (DatabaseException $e) {}
-	}
-
-	/**
-	 * This function is used to set the database table prefixes.
-	 *
-	 * @param  string $prefix The DB table prefix
-	 * @return void
-	 */
-	public static function setPrefix($prefix)
-	{
-		if (self::$prefix !== $prefix) {
-			Log::notice(sprintf('Setting DB table prefix to: %s', $prefix));
-
-			self::$prefix = $prefix;
-		}
-	}
-
-	/**
-	 * Gets the prefixed value on the DB tables
-	 *
-	 * @return string The prefix to the DB tables
-	 */
-	public static function getPrefix()
-	{
-		return self::$prefix;
+		throw new DatabaseException('Function not implemented');
 	}
 }
-date_default_timezone_set('Europe/London');
-include_once '../vendor/autoload.php';
-Log::init('../logs/');
-Database::init(null, null, 'gamestracker', 'mongo');
-var_dump(Database::query('test'));

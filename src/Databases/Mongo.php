@@ -2,9 +2,7 @@
 namespace N8G\Database\Databases;
 
 use N8G\Utils\Log,
-	N8G\Database\DatabaseInterface,
-	N8G\Database\Exceptions\MongoException,
-	N8G\Database\Exceptions\QueryException,
+	N8G\Database\Exceptions\DatabaseException,
 	\MongoClient;
 
 /**
@@ -91,8 +89,23 @@ class Mongo
 		return $this->connection->$db;
 	}
 
-	public function query($query)
+	public function close()
 	{
-		return $this->db->find();
+		//Get the list of connections
+		$connections = $this->connection->getConnections();
+
+		//Close connections
+		foreach ($connections as $con) {
+			if ($con['connection']['connection_type_desc'] === 'SECONDARY') {
+				if (!$this->connection->close($con['hash'])) {
+					throw new DatabaseException('Mongo connection could not be closed!');
+				}
+			}
+		}
+	}
+
+	public function getConnection()
+	{
+		return $this->connection;
 	}
 }
