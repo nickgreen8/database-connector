@@ -1,5 +1,4 @@
 vendor/
 logs/
 composer.lock
-test.php
 index.php

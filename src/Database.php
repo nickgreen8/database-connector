@@ -42,27 +42,22 @@ class Database
 		//Check for host
 		$conf['host'] = !isset($conf['host']) ? 'localhost' : $conf['host'];
 
-		//Make connection to the database
-		try {
-			//Get the relevant database class
-			switch ($dbType) {
-				case 'mysql' :
-					Log::notice('Attempting connection to MySQL database');
-					self::$db = MySql::getInstance();
-					self::$db->connect($conf['host'], $conf['username'], $conf['password'], $conf['name']);
-					break;
+		//Get the relevant database class
+		switch ($dbType) {
+			case 'mysql' :
+				Log::notice('Attempting connection to MySQL database');
+				self::$db = MySql::getInstance();
+				self::$db->connect($conf['host'], $conf['username'], $conf['password'], $conf['name']);
+				break;
 
-				case 'mongo':
-					Log::notice('Attempting connection to MongoDB');
-					self::$db = Mongo::getInstance();
-					self::$db->connect($conf['host'], isset($conf['port']) ? $conf['port'] : 27017, $conf['name']);
-					break;
-			}
-
-			Log::success('Database connection established');
-		} catch (\Exception $e) {
-			self::$db = null;
+			case 'mongo':
+				Log::notice('Attempting connection to MongoDB');
+				self::$db = Mongo::getInstance();
+				self::$db->connect($conf['host'], isset($conf['port']) ? $conf['port'] : 27017, $conf['name']);
+				break;
 		}
+
+		Log::success('Database connection established');
 	}
 
 	/**

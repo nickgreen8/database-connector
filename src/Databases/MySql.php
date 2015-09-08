@@ -1,7 +1,8 @@
 <?php
 namespace N8G\Database\Databases;
 
-use N8G\Utils\Log,
+use N8G\Database\Exceptions\MySqlException,
+	N8G\Utils\Log,
 	\mysqli;
 
 /**
@@ -68,7 +69,7 @@ class MySql
 
 		//Check for connection
 		if (mysqli_connect_errno()) {
-			throw new DatabaseException(sprintf('Connect failed: %s', mysqli_connect_error()), Log::FATAL);
+			throw new MySqlException(sprintf('Connect failed: %s', mysqli_connect_error()), Log::FATAL);
 		}
 
 		return $this->connection;
@@ -83,8 +84,14 @@ class MySql
 	 */
 	public function query($query)
 	{
-		$this->query = $this->connection->query($query);
-		return $this->query;
+		//Check for success
+		if ($this->query = $this->connection->query($query)) {
+			//Return results
+			return $this->query;
+		}
+
+		//Throw error if not successful
+		throw new MySqlException(sprintf('Query error: #%d - %s', $this->connection->errno, $this->connection->error), Log::FATAL);
 	}
 
 	/**
@@ -97,7 +104,14 @@ class MySql
 	 */
 	public function multiQuery($query)
 	{
-		return $this->connection->multi_query($query);
+		//Check for success
+		if ($this->connection->multi_query($query)) {
+			//Return results
+			return $this->query;
+		}
+
+		//Throw error if not successful
+		throw new MySqlException(sprintf('Query error: #%d - %s', $this->connection->errno, $this->connection->error), Log::FATAL);
 	}
 
 	/**
@@ -121,8 +135,10 @@ class MySql
 		do {
 			//Check the data
 			if ($res = $this->connection->store_result()) {
-				//Add data to return array
-				array_push($result, $res->fetch_assoc());
+				while ($data = $res->fetch_assoc()) {
+					//Add data to return array
+					array_push($result, $data);
+				}
 				$res->free();
 			} else {
 				//Check for an error
