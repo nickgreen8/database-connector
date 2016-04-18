@@ -22,6 +22,12 @@ class Database
 	private static $db;
 
 	/**
+	 * The prefix to database tables
+	 * @var string
+	 */
+	private static $prefix;
+
+	/**
 	 * This is the function that will create the connection to the relevant database. If the function
 	 * is successful in connecting to the DB, the new object is stored. If not, the 'db' variable is
 	 * set to NULL. Nothing is returned. The parameters that are passed to the function are the
