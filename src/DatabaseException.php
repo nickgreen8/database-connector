@@ -1,14 +1,12 @@
 <?php
-namespace N8G\Database\Exceptions;
-
-use N8G\Database\Exceptions\ExceptionAbstract;
+namespace N8G\Database;
 
 /**
  * This exception is thown when a database connection cannot be found or it does not exist.
  *
  * @author Nick Green <nick-green@live.co.uk>
  */
-class MongoException extends ExceptionAbstract
+class DatabaseException extends \Exception
 {
 	/**
 	 * Default custom exception constructor
@@ -17,9 +15,8 @@ class MongoException extends ExceptionAbstract
 	 * @param integer        $code     A user defined error
 	 * @param Exception|null $previous A previous exception that has caused this exception
 	 */
-	public function __construct($message, $code = 1, Exception $previous = null)
+	public function __construct($message, $code = 0, Exception $previous = null)
 	{
 		parent::__construct($message, $code, $previous);
-		$this->log();
 	}
 }

@@ -1,10 +1,9 @@
 <?php
 namespace N8G\Database;
 
-use N8G\Utils\Log,
-	N8G\Database\Databases\MySql,
-	N8G\Database\Databases\Mongo,
-	N8G\Database\Exceptions\DatabaseException;
+use N8G\Database\DatabaseException;
+use N8G\Database\Databases\MySql;
+use N8G\Database\Databases\Mongo;
 
 /**
  * This class is used to connect to the relevant database and interact with it. Before anything can
@@ -15,81 +14,79 @@ use N8G\Utils\Log,
  */
 class Database
 {
-	/**
-	 * The database class to interact with.
-	 * @var object
-	 */
-	private static $db;
+    /**
+     * The database class to interact with.
+     * @var object
+     */
+    private $db;
 
-	/**
-	 * The prefix to database tables
-	 * @var string
-	 */
-	private static $prefix;
+    /**
+     * Default constructor.
+     * Takes the an instance of the application container so that the database instances can utilise the contents. The
+     * database type is also passed as a string so that the relevant object can be created for the right type of
+     * database.
+     *
+     * @param object $container Instance of the application container.
+     * @param string $type      Type of database object to create.
+     */
+    public function __construct($container, $type)
+    {
+        //Set the container
+        $this->container = $container;
 
-	/**
-	 * This is the function that will create the connection to the relevant database. If the function
-	 * is successful in connecting to the DB, the new object is stored. If not, the 'db' variable is
-	 * set to NULL. Nothing is returned. The parameters that are passed to the function are the
-	 * parmameters needed to access the database and they type of database.
-	 *
-	 * @param  array|object $conf The data needed to create the database connection.
-	 * @param  string $dbType     The type of database to be connected to (Default: mysql)
-	 * @return void
-	 */
-	public static function init($conf, $dbType = 'mysql')
-	{
-		Log::notice('Initilising database connection');
+        //Get the relevant database object
+        switch ($type) {
+            case 'mysql':
+                $this->db = new MySql($container);
+                break;
 
-		//Convert conf if required
-		if (is_object($conf)) {
-			$conf = (array) $conf;
-		}
-		//Check for host
-		$conf['host'] = !isset($conf['host']) ? 'localhost' : $conf['host'];
+            case 'mongo':
+                $this->db = new Mongo($container);
+                break;
+            
+            default:
+                throw new DatabaseException(sprintf('The database type specified is invalid. Type: %s.', $type));
+                break;
+        }
+    }
 
-		//Get the relevant database class
-		switch ($dbType) {
-			case 'mysql' :
-				Log::notice('Attempting connection to MySQL database');
-				self::$db = MySql::getInstance();
-				self::$db->connect($conf['host'], $conf['username'], $conf['password'], $conf['name']);
-				break;
+    /**
+     * Default destructor.
+     * If there is a close function for the database it is called to close the DB connection.
+     */
+    public function __destruct()
+    {
+        //Check that the function exists
+        if (method_exists($this->db, 'close')) {
+            //Call the close function
+            $this->db->close();
+        }
+    }
 
-			case 'mongo':
-				Log::notice('Attempting connection to MongoDB');
-				self::$db = Mongo::getInstance();
-				self::$db->connect($conf['host'], isset($conf['port']) ? $conf['port'] : 27017, $conf['name']);
-				break;
-		}
+    /**
+     * This function is used to call the function that is called on the relevant database class. The
+     * method that is called is the first paramter that is passed. The arguments that are passed are
+     * then passed. The relevant function is then checked and called with the parameters passed on.
+     * The result is then returned. If the function does not exist or a connection has not been made,
+     * then an exception is throw.
+     *
+     * @param  string $method The method to be called.
+     * @param  array  $args   An array of the arguments passed to the function.
+     * @return mixed          The result of the function call.
+     */
+    public function __call($method, $args)
+    {
+        //Check for connection
+        if (!isset($this->db)) {
+            throw new DatabaseException('There was no database connection found.');
+        }
 
-		Log::success('Database connection established');
-	}
+        //Check that the function exists
+        if (method_exists($this->db, $method)) {
+            //Call the function
+            return call_user_func_array(array($this->db, $method), $args);
+        }
 
-	/**
-	 * This function is used to call the function that is called on the relevant database class. The
-	 * method that is called is the first paramter that is passed. The arguments that are passed are
-	 * then passed. The relevant function is then checked and called with the parameters passed on.
-	 * The result is then returned. If the function does not exist or a connection has not been made,
-	 * then an exception is throw.
-	 *
-	 * @param  string $method The method to be called.
-	 * @param  array  $args   An array of the arguments passed to the function.
-	 * @return mixed          The result of the function call.
-	 */
-	public static function __callStatic($method, $args)
-	{
-		//Check for connection
-		if (!isset(self::$db)) {
-			throw new DatabaseException('There was no database connection found.');
-		}
-
-		//Check that the function exists
-		if (method_exists(self::$db, $method)) {
-			//Call the function
-			return call_user_func_array(array(self::$db, $method), $args);
-		}
-
-		throw new DatabaseException('Function not implemented');
-	}
+        throw new DatabaseException('Function not implemented');
+    }
 }
