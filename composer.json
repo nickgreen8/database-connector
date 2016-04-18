@@ -20,7 +20,8 @@
 		"n8g/utils": ">=0.0.1"
 	},
 	"require-dev": {
-		"phpunit/phpunit": "4.4.*"
+		"phpunit/phpunit": "4.4.*",
+		"phpdocumentor/phpdocumentor": "2.*"
 	},
 	"autoload": {
 		"psr-4": {

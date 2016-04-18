@@ -1,14 +1,12 @@
 <?php
 namespace N8G\Database\Exceptions;
 
-use N8G\Database\Exceptions\ExceptionAbstract;
-
 /**
- * This exception is thown when a database connection cannot be found or it does not exist.
+ * This exception is thown when there is an issue with a MySQL database connection.
  *
  * @author Nick Green <nick-green@live.co.uk>
  */
-class QueryException extends ExceptionAbstract
+class MySqlException extends ExceptionAbstract
 {
 	/**
 	 * Default custom exception constructor

@@ -1,10 +1,8 @@
 <?php
 namespace N8G\Database\Databases;
 
-use N8G\Utils\Log,
-	N8G\Database\DatabaseInterface,
-	N8G\Database\Exceptions\UnableToCreateDatabaseConnectionException,
-	N8G\Database\Exceptions\QueryException,
+use N8G\Database\Exceptions\MySqlException,
+	N8G\Utils\Log,
 	\mysqli;
 
 /**
@@ -14,7 +12,7 @@ use N8G\Utils\Log,
  *
  * @author Nick Green <nick-green@live.co.uk>
  */
-class MySql implements DatabaseInterface
+class MySql
 {
 	/**
 	 * An instance of this class
@@ -65,9 +63,15 @@ class MySql implements DatabaseInterface
 	 * @param  string $name     The DB to connect with
 	 * @return object
 	 */
-	function connect($host, $username, $password, $name)
+	public function connect($host, $username, $password, $name)
 	{
-		$this->connection = mysqli_connect($host, $username, $password, $name);
+		$this->connection = new mysqli($host, $username, $password, $name);
+
+		//Check for connection
+		if (mysqli_connect_errno()) {
+			throw new MySqlException(sprintf('Connect failed: %s', mysqli_connect_error()), Log::FATAL);
+		}
+
 		return $this->connection;
 	}
 
@@ -78,10 +82,16 @@ class MySql implements DatabaseInterface
 	 * @param  string $query The query to be passed to the DB
 	 * @return object        A query result object
 	 */
-	function query($query)
+	public function query($query)
 	{
-		$this->query = $this->connection->query($query);
-		return $this->query;
+		//Check for success
+		if ($this->query = $this->connection->query($query)) {
+			//Return results
+			return $this->query;
+		}
+
+		//Throw error if not successful
+		throw new MySqlException(sprintf('Query error: #%d - %s', $this->connection->errno, $this->connection->error), Log::FATAL);
 	}
 
 	/**
@@ -92,18 +102,54 @@ class MySql implements DatabaseInterface
 	 * @param  mixed  $queries Either an array of strings that make up the queries or a long string.
 	 * @return object          A query result object
 	 */
-	function multiQuery($query)
+	public function multiQuery($query)
 	{
-		return $this->connection->multi_query($query);
+		//Check for success
+		if ($this->connection->multi_query($query)) {
+			//Return results
+			return $this->query;
+		}
+
+		//Throw error if not successful
+		throw new MySqlException(sprintf('Query error: #%d - %s', $this->connection->errno, $this->connection->error), Log::FATAL);
 	}
 
 	/**
-	 * This function is used to execute a database procedure.
+	 * This function is used to execute a database procedure. The name of the procedure
+	 * and the arguments to pass to the procedure are passed.
 	 *
-	 * @return object          A query result object
+	 * @param  string $procedure  The name of the procedure to be executed.
+	 * @param  string|array $args The arguments as an array or string to be passed to the procedure
+	 * @return array              An array of the data retrieved
 	 */
-	public function execProcedure()
-	{}
+	public function execProcedure($procedure, $args)
+	{
+		Log::debug(sprintf('Executing procedure againse the MySQL databse: CALL %s(%s)', $procedure, is_array($args) ? implode(', ', $args) : $args));
+
+		//Create result array
+		$result = array();
+		//Execute the procedure
+		$this->connection->multi_query(sprintf('CALL %s(\'%s\')', $procedure, is_array($args) ? implode('\', \'', $args) : $args));
+
+		//Go through the data
+		do {
+			//Check the data
+			if ($res = $this->connection->store_result()) {
+				while ($data = $res->fetch_assoc()) {
+					//Add data to return array
+					array_push($result, $data);
+				}
+				$res->free();
+			} else {
+				//Check for an error
+				if ($this->connection->errno) {
+					Log::error(sprintf('Store failed: (%s) %s', $this->connection->errno, $this->connection->error));
+				}
+			}
+		} while ($this->connection->more_results() && $this->connection->next_result());
+
+		return $result;
+	}
 
 	/**
 	 * This function gets the number of rows returned by the query. The result object is
@@ -112,7 +158,7 @@ class MySql implements DatabaseInterface
 	 * @param  object $result The query result object
 	 * @return int            The number of rows returned from the query
 	 */
-	function getNumRows($result)
+	public function getNumRows($result)
 	{
 		if ($result === null) {
 			return $this->query->num_rows;
@@ -128,7 +174,7 @@ class MySql implements DatabaseInterface
 	 * @param  object $result The query result object
 	 * @return array          The query result in the form of an array
 	 */
-	function getArray($result)
+	public function getArray($result)
 	{
 		if ($result === null) {
 			return $this->query->fetch_assoc();
@@ -143,7 +189,7 @@ class MySql implements DatabaseInterface
 	 *
 	 * @return int The ID of the record added to the DB
 	 */
-	function getInsertID()
+	public function getInsertID()
 	{
 		return $this->connection->insert_id;
 	}
@@ -155,7 +201,7 @@ class MySql implements DatabaseInterface
 	 *
 	 * @return void
 	 */
-	function close()
+	public function close()
 	{
 		return $this->connection->close();
 	}
@@ -169,5 +215,91 @@ class MySql implements DatabaseInterface
 	public function getConnection()
 	{
 		return $this->connection;
+	}
+
+	/**
+	 * This function is used to build up a query and then to execute it. It is more of
+	 * a helper function that something that will be used in practice. The table to
+	 * query, the data, an action and any parameters are passed. The query is then built
+	 * and executed. The result object is then returned.
+	 *
+	 * @param  string $table      The table to be interacted with as a string
+	 * @param  array  $data       An array of data
+	 * @param  string $action     'select', 'insert' or 'update'
+	 * @param  mixed  $parameters Either an array of parameters or a string
+	 * @return object             A query reuslt object
+	 */
+	public function perform($table, array $data, $action = 'insert', $parameters = null)
+	{
+		Log::notice('Building query');
+
+		if (strtoupper($action) !== 'SELECT' && strtoupper($action) !== 'INSERT' && strtoupper($action) !== 'UPDATE' && strtoupper($action) !== 'DELETE') {
+			Log::ERROR(sprintf('An invalid action was specified. The action must be INSERT, UPDATE, SELECT or DELETE. %s specified.', strtoupper($action)));
+			return;
+		}
+
+		if (strtoupper($action) === 'SELECT') {
+			//Create query string
+			$query = 'SELECT ';
+
+			//Build the query
+			foreach ($data as $arg) {
+				$query .= $arg . ', ';
+			}
+			$query = substr($query, 0, -2);
+
+			$query .= ' FROM ';
+			$query .= $table;
+
+			//Check for params
+			if ($parameters !== null) {
+				$query .= ' WHERE ' . $parameters;
+			}
+		} elseif (strtoupper($action) === 'INSERT') {
+			//Create query string
+			$query = 'INSERT INTO ' . $table . ' (';
+			$values = '';
+
+			//Build query
+			foreach ($data as $col => $val) {
+				$query .= $col . ', ';
+
+				if (is_int($val)) {
+					$values .= $val . ', ';
+				} elseif (is_bool($val)) {
+					$values .= $val === true ? 'TRUE, ' : 'FALSE, ';
+				} else {
+					$values .= '\'' . $val . '\', ';
+				}
+			}
+
+			$query = substr($query, 0, -2) . ') VALUES (' . substr($values, 0, -2) . ')';
+		} elseif (strtoupper($action) === 'UPDATE') {
+			//Create query string
+			$query = 'UPDATE ' . $table . ' SET ';
+
+			//Build query
+			foreach ($data as $col => $val) {
+				$query .= $col . ' = ';
+
+				if (is_int($val)) {
+					$query .= $val . ', ';
+				} elseif (is_bool($val)) {
+					$query .= $val === true ? 'TRUE, ' : 'FALSE, ';
+				} else {
+					$query .= '\'' . $val . '\', ';
+				}
+			}
+
+			$query = substr($query, 0, -2) . ' WHERE ' . $parameters;
+		} elseif (strtoupper($action) === 'DELETE') {
+			//Create query string
+			$query = 'DELETE FROM ' . $table . ' WHERE ' . $parameters;
+		}
+
+		Log::success(sprintf('Query built: %s', $query));
+
+		//Make the query
+		return self::query($query);
 	}
 }

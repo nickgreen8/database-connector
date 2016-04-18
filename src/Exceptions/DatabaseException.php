@@ -8,7 +8,7 @@ use N8G\Database\Exceptions\ExceptionAbstract;
  *
  * @author Nick Green <nick-green@live.co.uk>
  */
-class NoDatabaseConnectionException extends ExceptionAbstract
+class DatabaseException extends ExceptionAbstract
 {
 	/**
 	 * Default custom exception constructor

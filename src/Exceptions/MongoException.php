@@ -8,7 +8,7 @@ use N8G\Database\Exceptions\ExceptionAbstract;
  *
  * @author Nick Green <nick-green@live.co.uk>
  */
-class NoDatabaseConnectionException extends ExceptionAbstract
+class MongoException extends ExceptionAbstract
 {
 	/**
 	 * Default custom exception constructor
@@ -17,7 +17,7 @@ class NoDatabaseConnectionException extends ExceptionAbstract
 	 * @param integer        $code     A user defined error
 	 * @param Exception|null $previous A previous exception that has caused this exception
 	 */
-	public function __construct($message, $code = 0, Exception $previous = null)
+	public function __construct($message, $code = 1, Exception $previous = null)
 	{
 		parent::__construct($message, $code, $previous);
 		$this->log();
