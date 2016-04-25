@@ -17,4 +17,4 @@ This is a very simple database adapter that will allow a single website to conne
 
 Docs
 ----
-The documentation for this project can be found by [clicking here](http://htmlpreview.github.io/?https://github.com/nickgreen8/database-connector/blob/release/docs/index.html "Database Connector Documentation").
+The documentation for this project can be found by [clicking here](http://htmlpreview.github.io/?https://github.com/nickgreen8/database-connector/blob/master/docs/index.html "Database Connector Documentation").
