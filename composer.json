@@ -25,7 +25,7 @@
 	},
 	"autoload": {
 		"psr-4": {
-			"N8G\\Database\\": "src/"
+			"N8G\\DatabaseConnector\\": "src/"
 		}
 	}
 }

@@ -21,3 +21,4 @@ interface DatabaseInterface
 	 */
 	public function connect($credentials);
 }
+

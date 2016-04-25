@@ -324,3 +324,4 @@ class MySql implements DatabaseInterface
         return $this->query($query);
     }
 }
+

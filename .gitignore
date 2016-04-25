@@ -1,4 +1,5 @@
 vendor/
 logs/
+src/Container.php
 composer.lock
 index.php

@@ -100,3 +100,4 @@ class Database
         return str_replace('N8G\DatabaseConnector\Databases\\', '', get_class($this->db));
     }
 }
+

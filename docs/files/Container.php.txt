@@ -1,0 +1,21 @@
+<?php
+namespace N8G\DatabaseConnector;
+
+use N8G\Utils\Log;
+use N8G\Utils\ContainerAbstract;
+
+/**
+ * Integration test container for this single project.
+ *
+ * @author Nick Green <nick-green@live.co.uk>
+ */
+class Container extends ContainerAbstract
+{
+	public function populate()
+	{
+		$logger = new Log;
+		$logger->init('./logs/', 'integration.log', 'success');
+		$this->add('logger', $logger);
+	}
+}
+

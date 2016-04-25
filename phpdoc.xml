@@ -23,6 +23,9 @@
 		<template name="clean" />
 	</transformations>
 	<files>
-		<directory>./src/</directory>
+		<directory>./src/Databases</directory>
+		<file>./src/Database.php</file>
+		<file>./src/DatabaseException.php</file>
+		<file>./src/DatabaseInterface.php</file>
 	</files>
 </phpdoc>
